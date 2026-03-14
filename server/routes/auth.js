@@ -72,6 +72,10 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ message: 'Invalid Credentials' });
         }
 
+        // Update last login
+        user.lastLogin = Date.now();
+        await user.save();
+
         // Create JWT
         const payload = {
             user: {
@@ -89,6 +93,18 @@ router.post('/login', async (req, res) => {
                 res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
             }
         );
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/auth/users
+// @desc    Get all users (Admin check simplified for now)
+router.get('/users', async (req, res) => {
+    try {
+        const users = await User.find().select('-password');
+        res.json(users);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

@@ -26,6 +26,10 @@ const UserSchema = new mongoose.Schema({
     zone: {
         type: String,
         required: true
+    },
+    lastLogin: {
+        type: Date,
+        default: Date.now
     }
 }, { timestamps: true });
 

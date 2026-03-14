@@ -126,7 +126,7 @@ const Signup = () => {
                                 </div>
                             </div>
 
-                            <div className="space-y-2 group md:col-span-2">
+                            <div className="space-y-2 group">
                                 <label className="text-sm font-semibold text-slate-700 ml-1">Select Your Zone</label>
                                 <div className="relative">
                                     <MapPin className="absolute top-3.5 left-4 h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
@@ -142,6 +142,26 @@ const Signup = () => {
                                         <option value="Zone B">Zone B (Urban North)</option>
                                         <option value="Zone C">Zone C (Industrial East)</option>
                                         <option value="Zone D">Zone D (Garden West)</option>
+                                    </select>
+                                    <div className="absolute right-4 top-4 pointer-events-none text-slate-400">
+                                        <ArrowRight size={16} className="rotate-90" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2 group">
+                                <label className="text-sm font-semibold text-slate-700 ml-1">Register As</label>
+                                <div className="relative">
+                                    <User className="absolute top-3.5 left-4 h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                    <select
+                                        name="role"
+                                        required
+                                        className="input-field pl-12 appearance-none"
+                                        value={formData.role}
+                                        onChange={onChange}
+                                    >
+                                        <option value="citizen">Citizen</option>
+                                        <option value="collector">Collector</option>
                                     </select>
                                     <div className="absolute right-4 top-4 pointer-events-none text-slate-400">
                                         <ArrowRight size={16} className="rotate-90" />

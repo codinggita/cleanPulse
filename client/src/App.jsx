@@ -6,10 +6,10 @@ import Home from './pages/Home';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
 import CitizenDashboard from './pages/citizen/Dashboard';
+import CollectorDashboard from './pages/collector/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Basic Placeholder Dashboards
-const CollectorDashboard = () => <div className="pt-24 px-8 text-center animate-fade-in"><h1 className="text-3xl font-bold text-slate-900">Collector Dashboard</h1><p className="text-slate-600 mt-4 text-xl">Coming soon: Pickup Management</p></div>;
 const AdminDashboard = () => <div className="pt-24 px-8 text-center animate-fade-in"><h1 className="text-3xl font-bold text-slate-900">Admin Dashboard</h1><p className="text-slate-600 mt-4 text-xl">Coming soon: Analytics & Users</p></div>;
 
 function App() {
