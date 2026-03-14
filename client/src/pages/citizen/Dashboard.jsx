@@ -117,10 +117,18 @@ const CitizenDashboard = () => {
 
                     {/* Recent Reports List */}
                     <div className="glass-card p-8 rounded-[2rem] shadow-xl overflow-hidden">
-                        <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center space-x-2">
-                             <MapPin className="text-emerald-600" />
-                             <span>Recent Reports</span>
-                        </h2>
+                        <div className="flex items-center justify-between mb-6">
+                             <h2 className="text-xl font-bold text-slate-900 flex items-center space-x-2">
+                                <MapPin className="text-emerald-600" />
+                                <span>Recent Reports</span>
+                             </h2>
+                             <button 
+                                onClick={() => navigate('/citizen/my-reports')}
+                                className="text-emerald-600 font-bold hover:underline flex items-center gap-1"
+                             >
+                                 View All <PlusCircle size={14} className="rotate-45" />
+                             </button>
+                        </div>
                         
                         <div className="space-y-4">
                             {recentReports.length > 0 ? (

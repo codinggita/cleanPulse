@@ -74,6 +74,69 @@ router.get('/:id', auth, async (req, res) => {
     }
 });
 
+// @route   PUT /api/reports/:id
+// @desc    Update a garbage report
+// @access  Private (Citizen - only if pending)
+router.put('/:id', auth, async (req, res) => {
+    try {
+        let report = await Report.findById(req.params.id);
+        if (!report) return res.status(404).json({ message: 'Report not found' });
+
+        // Ensure user owns report
+        if (report.citizenId.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'User not authorized to edit this report' });
+        }
+
+        // Only allow editing if Status is Pending
+        if (report.status !== 'Pending') {
+            return res.status(400).json({ message: 'Only pending reports can be edited' });
+        }
+
+        const { garbageType, location, landmark, zone, description, photo, urgency } = req.body;
+        
+        // Update fields
+        if (garbageType) report.garbageType = garbageType;
+        if (location) report.location = location;
+        if (landmark) report.landmark = landmark;
+        if (zone) report.zone = zone;
+        if (description) report.description = description;
+        if (photo) report.photo = photo;
+        if (urgency) report.urgency = urgency;
+
+        const updatedReport = await report.save();
+        res.json(updatedReport);
+    } catch (err) {
+        console.error('Update report error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   DELETE /api/reports/:id
+// @desc    Delete a garbage report
+// @access  Private (Citizen/Admin - citizen only if pending)
+router.delete('/:id', auth, async (req, res) => {
+    try {
+        const report = await Report.findById(req.params.id);
+        if (!report) return res.status(404).json({ message: 'Report not found' });
+
+        // If not admin, check ownership and status
+        if (req.user.role !== 'admin') {
+            if (report.citizenId.toString() !== req.user.id) {
+                return res.status(401).json({ message: 'User not authorized to delete this report' });
+            }
+            if (report.status !== 'Pending') {
+                return res.status(400).json({ message: 'Only pending reports can be deleted by citizen' });
+            }
+        }
+
+        await Report.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Report removed' });
+    } catch (err) {
+        console.error('Delete report error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   PUT /api/reports/:id/status
 // @desc    Update report status
 // @access  Private (Collector/Admin)

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { 
     AlertCircle, 
     Camera, 
@@ -13,8 +13,9 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-const SubmitReport = () => {
+const SubmitReport = ({ isEdit = false }) => {
     const navigate = useNavigate();
+    const { id } = useParams();
     const [formData, setFormData] = useState({
         garbageType: 'Household',
         location: '',
@@ -29,6 +30,27 @@ const SubmitReport = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
+
+    useEffect(() => {
+        if (isEdit && id) {
+            fetchReportData();
+        }
+    }, [isEdit, id]);
+
+    const fetchReportData = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.get(`http://localhost:5000/api/reports/${id}`, {
+                headers: { 'x-auth-token': token }
+            });
+            const { garbageType, location, landmark, zone, description, photo, urgency } = res.data;
+            setFormData({ garbageType, location, landmark, zone, description, urgency, photo: null }); // Don't put string in file input
+            if (photo) setPreview(photo);
+        } catch (err) {
+            setError('Failed to fetch report data.');
+            console.error(err);
+        }
+    };
 
     const onChange = (e) => {
         const { name, value } = e.target;
@@ -58,25 +80,26 @@ const SubmitReport = () => {
         }
 
         try {
-            // Note: Since we don't have a real file upload service set up yet, 
-            // we will simulate the file upload or just send metadata for now.
-            // In a real app, we'd use FormData and a cloud storage service.
-            
             const token = localStorage.getItem('token');
             const dataToSend = {
                 ...formData,
-                // Simulate photo URL if a file was selected
-                photo: preview ? 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=800&auto=format&fit=crop' : null
+                // In a real app, we'd handle photo upload differently. 
+                // Here we keep existing photo if no new one is uploaded.
+                photo: preview // Simplified for this exercise
             };
 
-            await axios.post('http://localhost:5000/api/reports', dataToSend, {
-                headers: {
-                    'x-auth-token': token
-                }
-            });
+            if (isEdit) {
+                await axios.put(`http://localhost:5000/api/reports/${id}`, dataToSend, {
+                    headers: { 'x-auth-token': token }
+                });
+            } else {
+                await axios.post('http://localhost:5000/api/reports', dataToSend, {
+                    headers: { 'x-auth-token': token }
+                });
+            }
 
             setSuccess(true);
-            setTimeout(() => navigate('/citizen/dashboard'), 2000);
+            setTimeout(() => navigate('/citizen/my-reports'), 2000);
         } catch (err) {
             console.error('Submission error:', err);
             const message = err.response?.data?.message || err.message || 'Failed to submit report. Please try again.';
@@ -101,8 +124,12 @@ const SubmitReport = () => {
                 <div className="glass-card p-8 md:p-10 rounded-[2.5rem] shadow-xl border border-white/40">
                     <div className="mb-10 flex items-center justify-between">
                         <div>
-                            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Report Garbage Issue</h1>
-                            <p className="text-slate-500 mt-2 font-medium">Help us keep your neighborood clean</p>
+                            <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+                                {isEdit ? 'Update Garbage Report' : 'Report Garbage Issue'}
+                            </h1>
+                            <p className="text-slate-500 mt-2 font-medium">
+                                {isEdit ? 'Modify your previously submitted report' : 'Help us keep your neighborood clean'}
+                            </p>
                         </div>
                         <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center shadow-inner">
                             <Trash2 size={32} />
@@ -119,7 +146,9 @@ const SubmitReport = () => {
                     {success && (
                         <div className="mb-8 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center space-x-3 text-emerald-600">
                             <CheckCircle2 size={20} />
-                            <p className="font-bold">Report submitted successfully! Redirecting...</p>
+                            <p className="font-bold">
+                                {isEdit ? 'Report updated successfully!' : 'Report submitted successfully!'} Redirecting...
+                            </p>
                         </div>
                     )}
 
@@ -278,7 +307,9 @@ const SubmitReport = () => {
                                 ) : (
                                     <>
                                         <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                        <span className="text-lg">Submit Garbage Report</span>
+                                        <span className="text-lg">
+                                            {isEdit ? 'Save Changes' : 'Submit Garbage Report'}
+                                        </span>
                                     </>
                                 )}
                             </button>

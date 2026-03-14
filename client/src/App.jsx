@@ -7,6 +7,7 @@ import Signup from './pages/Signup';
 import Login from './pages/Login';
 import CitizenDashboard from './pages/citizen/Dashboard';
 import SubmitReport from './pages/citizen/SubmitReport';
+import MyReports from './pages/citizen/MyReports';
 import CollectorDashboard from './pages/collector/Dashboard';
 import AdminDashboard from './pages/admin/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -37,6 +38,24 @@ function App() {
                 element={
                   <ProtectedRoute role="citizen">
                     <SubmitReport />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/citizen/my-reports" 
+                element={
+                  <ProtectedRoute role="citizen">
+                    <MyReports />
+                  </ProtectedRoute>
+                } 
+              />
+
+              <Route 
+                path="/citizen/edit-report/:id" 
+                element={
+                  <ProtectedRoute role="citizen">
+                    <SubmitReport isEdit={true} />
                   </ProtectedRoute>
                 } 
               />
