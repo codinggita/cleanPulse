@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { 
     Trash2, 
@@ -12,31 +12,76 @@ import {
     ArrowLeft,
     Loader2,
     X,
-    Filter
+    Filter,
+    Search,
+    ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import useDebounce from '../../hooks/useDebounce';
 
 const MyReports = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const locationState = useLocation();
+    
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [filter, setFilter] = useState('All');
+    
+    // Initial filter from query params
+    const queryParams = new URLSearchParams(locationState.search);
+    const initialStatus = queryParams.get('status') || 'All';
+
+    const [filter, setFilter] = useState(initialStatus);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [urgencyFilter, setUrgencyFilter] = useState('All');
+    const [sortBy, setSortBy] = useState('newest');
+
+    // Pagination States
+    const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(6);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalReports, setTotalReports] = useState(0);
+
+    const debouncedSearch = useDebounce(searchTerm, 500);
+
+    // React to URL changes (e.g., clicking a different filter in the Navbar or Dashboard)
+    useEffect(() => {
+        const status = queryParams.get('status') || 'All';
+        if (status !== filter) setFilter(status);
+    }, [locationState.search]);
 
     useEffect(() => {
+        // We only fetch when page or status/search/urgency/sort changes
         fetchReports();
-    }, []);
+    }, [filter, debouncedSearch, urgencyFilter, sortBy, page, limit]);
+
+    // Handle initial state and reset page on filter change
+    useEffect(() => {
+        if (page !== 1) setPage(1);
+    }, [filter, debouncedSearch, urgencyFilter, sortBy]);
 
     const fetchReports = async () => {
         try {
+            setLoading(true);
             const token = localStorage.getItem('token');
             const res = await axios.get('http://localhost:5000/api/reports', {
-                headers: { 'x-auth-token': token }
+                headers: { 'x-auth-token': token },
+                params: {
+                    status: filter,
+                    search: debouncedSearch,
+                    urgency: urgencyFilter,
+                    sortBy: sortBy,
+                    page: page,
+                    limit: limit
+                }
             });
-            setReports(res.data);
+            setReports(res.data.reports || []);
+            setTotalPages(res.data.totalPages || 0);
+            setTotalReports(res.data.totalReports || 0);
         } catch (err) {
-            setError('Failed to fetch your reports. Please try again.');
+            const msg = err.response?.data?.message || 'Failed to fetch your reports. Please try again.';
+            setError(msg);
             console.error(err);
         } finally {
             setLoading(false);
@@ -76,11 +121,7 @@ const MyReports = () => {
         }
     };
 
-    const filteredReports = filter === 'All' 
-        ? reports 
-        : reports.filter(r => r.status === filter);
-
-    if (loading) {
+    if (loading && reports.length === 0) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
                 <Loader2 className="w-12 h-12 text-emerald-600 animate-spin" />
@@ -126,6 +167,56 @@ const MyReports = () => {
                     </div>
                 </div>
 
+                {/* Search and Advanced Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-10">
+                    {/* Search Bar */}
+                    <div className="md:col-span-6 relative group">
+                        <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                        <input 
+                            type="text" 
+                            placeholder="Search by area, landmark or description..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full bg-white border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-bold text-slate-700 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 transition-all outline-none shadow-sm"
+                        />
+                    </div>
+
+                    {/* Urgency Filter */}
+                    <div className="md:col-span-3 relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                            <AlertCircle size={18} />
+                        </div>
+                        <select
+                            value={urgencyFilter}
+                            onChange={(e) => setUrgencyFilter(e.target.value)}
+                            className="w-full bg-white border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-10 font-bold text-slate-700 appearance-none focus:border-emerald-500 transition-all outline-none shadow-sm"
+                        >
+                            <option value="All">All Urgency</option>
+                            <option value="High">🔴 High</option>
+                            <option value="Medium">🟡 Medium</option>
+                            <option value="Low">🟢 Low</option>
+                        </select>
+                        <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+
+                    {/* Sort By */}
+                    <div className="md:col-span-3 relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                            <Filter size={18} />
+                        </div>
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className="w-full bg-white border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-10 font-bold text-slate-700 appearance-none focus:border-emerald-500 transition-all outline-none shadow-sm"
+                        >
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="urgency">Urgency (H to L)</option>
+                        </select>
+                        <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                </div>
+
                 {error && (
                     <div className="mb-8 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center space-x-3 text-rose-600">
                         <AlertCircle size={20} />
@@ -133,82 +224,152 @@ const MyReports = () => {
                     </div>
                 )}
 
-                {/* Reports Grid */}
-                {filteredReports.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
-                        {filteredReports.map((report) => (
-                            <div key={report._id} className="glass-card p-6 md:p-8 rounded-[2.5rem] shadow-lg border border-white/40 group hover:shadow-2xl transition-all duration-500 relative overflow-hidden bg-white/70">
-                                {/* Status Chip */}
-                                <div className="absolute top-6 right-6 flex items-center space-x-2">
-                                    <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border-2 ${getStatusStyle(report.status)}`}>
-                                        {report.status}
+                {/* Reports Grid & Pagination */}
+                {reports.length > 0 ? (
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+                            {reports.map((report) => (
+                                <div key={report._id} className="glass-card p-6 md:p-8 rounded-[2.5rem] shadow-lg border border-white/40 group hover:shadow-2xl transition-all duration-500 relative overflow-hidden bg-white/70">
+                                    <div className="absolute top-6 right-6 flex items-center space-x-2">
+                                        <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border-2 ${getStatusStyle(report.status)}`}>
+                                            {report.status}
+                                        </span>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <div>
+                                            <div className="flex items-center space-x-2 text-slate-400 mb-2">
+                                                <Calendar size={14} />
+                                                <span className="text-xs font-bold uppercase tracking-tight">
+                                                    {new Date(report.createdAt).toLocaleDateString('en-US', { 
+                                                        month: 'short', day: 'numeric', year: 'numeric' 
+                                                    })}
+                                                </span>
+                                            </div>
+                                            <h3 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+                                                <MapPin className="text-rose-500 w-5 h-5 shrink-0" />
+                                                <span className="truncate">{report.location}</span>
+                                            </h3>
+                                            <p className="text-slate-500 text-sm font-medium mt-1 ml-7">
+                                                {report.landmark ? `Near ${report.landmark}` : report.zone}
+                                            </p>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50/50 rounded-3xl border border-slate-100/50">
+                                            <div className="space-y-1">
+                                                <span className="text-[10px] uppercase tracking-widest font-black text-slate-400">Waste Type</span>
+                                                <p className="text-sm font-bold text-slate-700">{report.garbageType}</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <span className="text-[10px] uppercase tracking-widest font-black text-slate-400">Urgency</span>
+                                                <p className="text-sm font-bold text-slate-700">{getUrgencyIcon(report.urgency)} {report.urgency}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 pt-2">
+                                            {report.status === 'Pending' ? (
+                                                <>
+                                                    <button 
+                                                        onClick={() => navigate(`/citizen/edit-report/${report._id}`)}
+                                                        className="flex-1 flex items-center justify-center space-x-2 py-4 bg-white border-2 border-slate-100 rounded-2xl text-slate-600 font-bold hover:border-emerald-200 hover:text-emerald-600 hover:bg-emerald-50/30 transition-all shadow-sm"
+                                                    >
+                                                        <Edit size={18} />
+                                                        <span>Edit Report</span>
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDelete(report._id)}
+                                                        className="w-14 h-14 flex items-center justify-center bg-white border-2 border-slate-100 rounded-2xl text-slate-400 hover:border-rose-200 hover:text-rose-600 hover:bg-rose-50/30 transition-all shadow-sm"
+                                                    >
+                                                        <Trash2 size={20} />
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <button 
+                                                    disabled
+                                                    className="w-full py-4 bg-slate-100/50 border-2 border-slate-100 rounded-2xl text-slate-400 font-bold flex items-center justify-center gap-2 cursor-not-allowed"
+                                                >
+                                                    <Clock size={18} />
+                                                    <span>Under Processing</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Pagination Controls */}
+                        {totalPages > 0 && (
+                            <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 pb-8">
+                                <div className="flex items-center space-x-2">
+                                    <span className="text-slate-500 font-bold text-sm">Show</span>
+                                    <select 
+                                        value={limit}
+                                        onChange={(e) => setLimit(parseInt(e.target.value))}
+                                        className="bg-white border-2 border-slate-100 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all text-sm"
+                                    >
+                                        {[6, 12, 24, 48].map(n => (
+                                            <option key={n} value={n}>{n} per page</option>
+                                        ))}
+                                    </select>
+                                    <span className="text-slate-400 text-sm font-medium ml-2">
+                                        Total: <span className="text-slate-900 font-bold">{totalReports}</span> reports
                                     </span>
                                 </div>
 
-                                <div className="space-y-6">
-                                    {/* Location & Date */}
-                                    <div>
-                                        <div className="flex items-center space-x-2 text-slate-400 mb-2">
-                                            <Calendar size={14} />
-                                            <span className="text-xs font-bold uppercase tracking-tight">
-                                                {new Date(report.createdAt).toLocaleDateString('en-US', { 
-                                                    month: 'short', day: 'numeric', year: 'numeric' 
-                                                })}
-                                            </span>
-                                        </div>
-                                        <h3 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-                                            <MapPin className="text-rose-500 w-5 h-5 shrink-0" />
-                                            <span className="truncate">{report.location}</span>
-                                        </h3>
-                                        <p className="text-slate-500 text-sm font-medium mt-1 ml-7">
-                                            {report.landmark ? `Near ${report.landmark}` : report.zone}
-                                        </p>
+                                <div className="flex items-center space-x-2">
+                                    <button
+                                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                                        disabled={page === 1}
+                                        className={`p-3 rounded-xl border-2 transition-all ${
+                                            page === 1 
+                                            ? 'bg-slate-50 border-slate-50 text-slate-300 cursor-not-allowed' 
+                                            : 'bg-white border-slate-100 text-slate-600 hover:border-emerald-200 hover:text-emerald-600 shadow-sm'
+                                        }`}
+                                    >
+                                        <ArrowLeft size={20} />
+                                    </button>
+                                    
+                                    <div className="flex items-center bg-white border-2 border-slate-100 rounded-2xl p-1 shadow-sm">
+                                        {[...Array(totalPages)].map((_, i) => {
+                                            const p = i + 1;
+                                            if (totalPages > 5 && (p < page - 1 || p > page + 1) && p !== 1 && p !== totalPages) {
+                                                if (p === 2 || p === totalPages - 1) return <span key={p} className="px-2 text-slate-300">...</span>;
+                                                return null;
+                                            }
+                                            return (
+                                                <button
+                                                    key={p}
+                                                    onClick={() => setPage(p)}
+                                                    className={`w-10 h-10 rounded-xl text-sm font-black transition-all ${
+                                                        page === p 
+                                                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' 
+                                                        : 'text-slate-500 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    {p}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
 
-                                    {/* Details Grid */}
-                                    <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50/50 rounded-3xl border border-slate-100/50">
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] uppercase tracking-widest font-black text-slate-400">Waste Type</span>
-                                            <p className="text-sm font-bold text-slate-700">{report.garbageType}</p>
+                                    <button
+                                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                        disabled={page === totalPages}
+                                        className={`p-3 rounded-xl border-2 transition-all ${
+                                            page === totalPages 
+                                            ? 'bg-slate-50 border-slate-50 text-slate-300 cursor-not-allowed' 
+                                            : 'bg-white border-slate-100 text-slate-600 hover:border-emerald-200 hover:text-emerald-600 shadow-sm'
+                                        }`}
+                                    >
+                                        <div className="rotate-180">
+                                            <ArrowLeft size={20} />
                                         </div>
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] uppercase tracking-widest font-black text-slate-400">Urgency</span>
-                                            <p className="text-sm font-bold text-slate-700">{getUrgencyIcon(report.urgency)} {report.urgency}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex items-center gap-3 pt-2">
-                                        {report.status === 'Pending' ? (
-                                            <>
-                                                <button 
-                                                    onClick={() => navigate(`/citizen/edit-report/${report._id}`)}
-                                                    className="flex-1 flex items-center justify-center space-x-2 py-4 bg-white border-2 border-slate-100 rounded-2xl text-slate-600 font-bold hover:border-emerald-200 hover:text-emerald-600 hover:bg-emerald-50/30 transition-all shadow-sm"
-                                                >
-                                                    <Edit size={18} />
-                                                    <span>Edit Report</span>
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleDelete(report._id)}
-                                                    className="w-14 h-14 flex items-center justify-center bg-white border-2 border-slate-100 rounded-2xl text-slate-400 hover:border-rose-200 hover:text-rose-600 hover:bg-rose-50/30 transition-all shadow-sm"
-                                                >
-                                                    <Trash2 size={20} />
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <button 
-                                                disabled
-                                                className="w-full py-4 bg-slate-100/50 border-2 border-slate-100 rounded-2xl text-slate-400 font-bold flex items-center justify-center gap-2 cursor-not-allowed"
-                                            >
-                                                <Clock size={18} />
-                                                <span>Under Processing</span>
-                                            </button>
-                                        )}
-                                    </div>
+                                    </button>
                                 </div>
                             </div>
-                        ))}
-                    </div>
+                        )}
+                    </>
                 ) : (
                     <div className="text-center py-20 glass-card bg-white/50 rounded-[3rem] border border-dashed border-slate-200">
                         <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto mb-6">

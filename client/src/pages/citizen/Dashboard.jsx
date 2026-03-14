@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { PlusCircle, FileText, CheckCircle, Clock, RefreshCcw, MapPin, AlertCircle, Loader2 } from 'lucide-react';
@@ -82,28 +82,28 @@ const CitizenDashboard = () => {
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex flex-col items-center">
+                            <Link to="/citizen/my-reports" className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex flex-col items-center hover:bg-white hover:shadow-md transition-all">
                                 <span className="text-slate-400 text-sm font-semibold mb-1 uppercase tracking-wider">Total</span>
                                 <span className="text-3xl font-bold text-slate-900">{stats.total}</span>
-                            </div>
-                            <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 flex flex-col items-center">
+                            </Link>
+                            <Link to="/citizen/my-reports?status=Resolved" className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 flex flex-col items-center hover:bg-white hover:shadow-md transition-all">
                                 <span className="text-emerald-600/70 text-sm font-semibold mb-1 uppercase tracking-wider flex items-center space-x-1">
                                     <CheckCircle size={14} /> <span>Resolved</span>
                                 </span>
                                 <span className="text-3xl font-bold text-emerald-700">{stats.resolved}</span>
-                            </div>
-                            <div className="bg-amber-50 p-6 rounded-2xl border border-amber-100 flex flex-col items-center">
+                            </Link>
+                            <Link to="/citizen/my-reports?status=Pending" className="bg-amber-50 p-6 rounded-2xl border border-amber-100 flex flex-col items-center hover:bg-white hover:shadow-md transition-all">
                                 <span className="text-amber-600/70 text-sm font-semibold mb-1 uppercase tracking-wider flex items-center space-x-1">
                                     <Clock size={14} /> <span>Pending</span>
                                 </span>
                                 <span className="text-3xl font-bold text-amber-700">{stats.pending}</span>
-                            </div>
-                            <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 flex flex-col items-center">
+                            </Link>
+                            <Link to="/citizen/my-reports?status=In Progress" className="bg-blue-50 p-6 rounded-2xl border border-blue-100 flex flex-col items-center hover:bg-white hover:shadow-md transition-all">
                                 <span className="text-blue-600/70 text-sm font-semibold mb-1 uppercase tracking-wider flex items-center space-x-1">
                                     <RefreshCcw size={14} /> <span>In Progress</span>
                                 </span>
                                 <span className="text-3xl font-bold text-blue-700">{stats.inProgress}</span>
-                            </div>
+                            </Link>
                         </div>
 
                         <button 
@@ -122,12 +122,12 @@ const CitizenDashboard = () => {
                                 <MapPin className="text-emerald-600" />
                                 <span>Recent Reports</span>
                              </h2>
-                             <button 
-                                onClick={() => navigate('/citizen/my-reports')}
-                                className="text-emerald-600 font-bold hover:underline flex items-center gap-1"
+                             <Link 
+                                to="/citizen/my-reports"
+                                className="text-emerald-600 font-bold hover:underline flex items-center gap-1 group/all"
                              >
-                                 View All <PlusCircle size={14} className="rotate-45" />
-                             </button>
+                                 View All <PlusCircle size={14} className="rotate-45 group-hover/all:rotate-0 transition-transform" />
+                             </Link>
                         </div>
                         
                         <div className="space-y-4">
