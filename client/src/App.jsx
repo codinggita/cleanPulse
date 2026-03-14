@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
 import CitizenDashboard from './pages/citizen/Dashboard';
+import SubmitReport from './pages/citizen/SubmitReport';
 import CollectorDashboard from './pages/collector/Dashboard';
 import AdminDashboard from './pages/admin/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -27,6 +28,15 @@ function App() {
                 element={
                   <ProtectedRoute role="citizen">
                     <CitizenDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+
+              <Route 
+                path="/citizen/report" 
+                element={
+                  <ProtectedRoute role="citizen">
+                    <SubmitReport />
                   </ProtectedRoute>
                 } 
               />

@@ -1,13 +1,53 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { PlusCircle, FileText, CheckCircle, Clock, RefreshCcw, MapPin } from 'lucide-react';
+import { PlusCircle, FileText, CheckCircle, Clock, RefreshCcw, MapPin, AlertCircle, Loader2 } from 'lucide-react';
 
 const CitizenDashboard = () => {
     const { user } = useAuth();
-    const reports = [
-        { id: 1, location: "MG Road", status: "Resolved", icon: <CheckCircle className="text-emerald-500" size={18} /> },
-        { id: 2, location: "Station Area", status: "In Progress", icon: <RefreshCcw className="text-blue-500" size={18} /> },
-        { id: 3, location: "Park Street", status: "Pending", icon: <Clock className="text-amber-500" size={18} /> }
-    ];
+    const navigate = useNavigate();
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await axios.get('http://localhost:5000/api/dashboard/citizen', {
+                    headers: { 'x-auth-token': token }
+                });
+                setData(res.data);
+            } catch (err) {
+                setError('Failed to fetch dashboard data. Please try again.');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, []);
+
+    const getStatusIcon = (status) => {
+        switch (status) {
+            case 'Resolved': return <CheckCircle className="text-emerald-500" size={18} />;
+            case 'In Progress': return <RefreshCcw className="text-blue-500" size={18} />;
+            case 'Pending': return <Clock className="text-amber-500" size={18} />;
+            default: return <Clock size={18} />;
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <Loader2 className="w-12 h-12 text-emerald-600 animate-spin" />
+            </div>
+        );
+    }
+
+    const { stats, recentReports } = data || { stats: { total: 0, resolved: 0, pending: 0, inProgress: 0 }, recentReports: [] };
 
     return (
         <div className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto animate-fade-in">
@@ -23,6 +63,13 @@ const CitizenDashboard = () => {
                 </div>
             </div>
 
+            {error && (
+                <div className="mb-8 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center space-x-3 text-rose-600">
+                    <AlertCircle size={20} />
+                    <p className="font-bold">{error}</p>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* My Reports Overview Card */}
                 <div className="lg:col-span-2 space-y-8">
@@ -30,36 +77,39 @@ const CitizenDashboard = () => {
                         <div className="flex items-center justify-between mb-8">
                             <h2 className="text-xl font-bold text-slate-900 flex items-center space-x-2">
                                 <FileText className="text-emerald-600" />
-                                <span>My Reports</span>
+                                <span>My Reports Information</span>
                             </h2>
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex flex-col items-center">
                                 <span className="text-slate-400 text-sm font-semibold mb-1 uppercase tracking-wider">Total</span>
-                                <span className="text-3xl font-bold text-slate-900">12</span>
+                                <span className="text-3xl font-bold text-slate-900">{stats.total}</span>
                             </div>
                             <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 flex flex-col items-center">
                                 <span className="text-emerald-600/70 text-sm font-semibold mb-1 uppercase tracking-wider flex items-center space-x-1">
                                     <CheckCircle size={14} /> <span>Resolved</span>
                                 </span>
-                                <span className="text-3xl font-bold text-emerald-700">8</span>
+                                <span className="text-3xl font-bold text-emerald-700">{stats.resolved}</span>
                             </div>
                             <div className="bg-amber-50 p-6 rounded-2xl border border-amber-100 flex flex-col items-center">
                                 <span className="text-amber-600/70 text-sm font-semibold mb-1 uppercase tracking-wider flex items-center space-x-1">
                                     <Clock size={14} /> <span>Pending</span>
                                 </span>
-                                <span className="text-3xl font-bold text-amber-700">3</span>
+                                <span className="text-3xl font-bold text-amber-700">{stats.pending}</span>
                             </div>
                             <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 flex flex-col items-center">
                                 <span className="text-blue-600/70 text-sm font-semibold mb-1 uppercase tracking-wider flex items-center space-x-1">
                                     <RefreshCcw size={14} /> <span>In Progress</span>
                                 </span>
-                                <span className="text-3xl font-bold text-blue-700">1</span>
+                                <span className="text-3xl font-bold text-blue-700">{stats.inProgress}</span>
                             </div>
                         </div>
 
-                        <button className="mt-10 w-full btn-primary flex items-center justify-center space-x-2 group">
+                        <button 
+                            onClick={() => navigate('/citizen/report')}
+                            className="mt-10 w-full btn-primary flex items-center justify-center space-x-2 group"
+                        >
                             <PlusCircle size={22} className="group-hover:rotate-90 transition-transform duration-300" />
                             <span>Submit New Report</span>
                         </button>
@@ -73,20 +123,29 @@ const CitizenDashboard = () => {
                         </h2>
                         
                         <div className="space-y-4">
-                            {reports.map((report) => (
-                                <div key={report.id} className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-emerald-200 hover:bg-white transition-all group">
-                                    <div className="flex items-center space-x-4">
-                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
-                                            <MapPin size={20} className="text-rose-500" />
+                            {recentReports.length > 0 ? (
+                                recentReports.map((report) => (
+                                    <div key={report._id} className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-emerald-200 hover:bg-white transition-all group">
+                                        <div className="flex items-center space-x-4">
+                                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
+                                                <MapPin size={20} className="text-rose-500" />
+                                            </div>
+                                            <div>
+                                                <span className="font-bold text-slate-800 tracking-tight text-lg block">{report.location}</span>
+                                                <span className="text-slate-400 text-xs font-semibold">{new Date(report.createdAt).toLocaleDateString()}</span>
+                                            </div>
                                         </div>
-                                        <span className="font-bold text-slate-800 tracking-tight text-lg">{report.location}</span>
+                                        <div className="flex items-center space-x-3 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-50">
+                                            {getStatusIcon(report.status)}
+                                            <span className="font-semibold text-slate-600">{report.status}</span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center space-x-3 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-50">
-                                        {report.icon}
-                                        <span className="font-semibold text-slate-600">{report.status}</span>
-                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                    <p className="text-slate-400 font-bold">No reports submitted yet.</p>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
                 </div>
@@ -113,3 +172,4 @@ const CitizenDashboard = () => {
 };
 
 export default CitizenDashboard;
+

@@ -25,8 +25,12 @@ router.post('/', auth, async (req, res) => {
         const report = await newReport.save();
         res.json(report);
     } catch (err) {
-        console.error('Report submission error:', err.message);
-        res.status(500).send('Server Error');
+        console.error('Report submission error:', err);
+        if (err.name === 'ValidationError') {
+            const messages = Object.values(err.errors).map(val => val.message);
+            return res.status(400).json({ message: 'Validation Error: ' + messages.join(', ') });
+        }
+        res.status(500).json({ message: 'Server Error: ' + err.message });
     }
 });
 
@@ -66,6 +70,39 @@ router.get('/:id', auth, async (req, res) => {
         res.json(report);
     } catch (err) {
         console.error('Fetch report details error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT /api/reports/:id/status
+// @desc    Update report status
+// @access  Private (Collector/Admin)
+router.put('/:id/status', auth, async (req, res) => {
+    try {
+        const { status } = req.body;
+        
+        let report = await Report.findById(req.params.id);
+        if (!report) return res.status(404).json({ message: 'Report not found' });
+
+        // If collector, they can only update if they are assigned or if it's pending in their zone
+        if (req.user.role === 'collector') {
+            const User = require('../models/User');
+            const user = await User.findById(req.user.id);
+            if (report.zone !== user.zone) {
+                return res.status(403).json({ message: 'Not authorized for this zone' });
+            }
+            
+            // Set collectorId if not set
+            if (!report.collectorId) {
+                report.collectorId = req.user.id;
+            }
+        }
+
+        report.status = status;
+        await report.save();
+        res.json(report);
+    } catch (err) {
+        console.error('Update status error:', err.message);
         res.status(500).send('Server Error');
     }
 });

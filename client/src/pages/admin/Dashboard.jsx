@@ -1,11 +1,44 @@
-import { BarChart3, AlertTriangle, Users, CheckCircle, Clock, MapPin, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { BarChart3, AlertTriangle, Users, CheckCircle, Clock, MapPin, TrendingUp, Loader2, AlertCircle } from 'lucide-react';
 
 const AdminDashboard = () => {
-    const problemAreas = [
-        { id: 1, location: "Station Road", count: 18, trend: "up" },
-        { id: 2, location: "Market Area", count: 14, trend: "stable" },
-        { id: 3, location: "Old City Zone", count: 11, trend: "down" }
-    ];
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await axios.get('http://localhost:5000/api/dashboard/admin', {
+                    headers: { 'x-auth-token': token }
+                });
+                setData(res.data);
+            } catch (err) {
+                setError('Failed to fetch admin analytics. Please try again.');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
+            </div>
+        );
+    }
+
+    const { stats, problemAreas, zoneStats } = data || { 
+        stats: { total: 0, resolved: 0, pending: 0, collectorsCount: 0 }, 
+        problemAreas: [], 
+        zoneStats: [] 
+    };
 
     return (
         <div className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto animate-fade-in">
@@ -21,6 +54,13 @@ const AdminDashboard = () => {
                     <p className="text-slate-500 font-medium tracking-wide">City-wide waste management overview</p>
                 </div>
             </div>
+
+            {error && (
+                <div className="mb-8 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center space-x-3 text-rose-600">
+                    <AlertCircle size={20} />
+                    <p className="font-bold">{error}</p>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* City Waste Overview Card */}
@@ -41,19 +81,19 @@ const AdminDashboard = () => {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10">
                             <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 hover:bg-white hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <span className="block text-slate-400 text-xs font-bold mb-2 uppercase tracking-widest text-center">Total Reports</span>
-                                <span className="block text-4xl font-black text-slate-900 text-center tracking-tight">245</span>
+                                <span className="block text-4xl font-black text-slate-900 text-center tracking-tight">{stats.total}</span>
                             </div>
                             <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100 hover:bg-white hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <span className="block text-emerald-600/70 text-xs font-bold mb-2 uppercase tracking-widest text-center">Resolved</span>
-                                <span className="block text-4xl font-black text-emerald-700 text-center tracking-tight">189</span>
+                                <span className="block text-4xl font-black text-emerald-700 text-center tracking-tight">{stats.resolved}</span>
                             </div>
                             <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100 hover:bg-white hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <span className="block text-amber-600/70 text-xs font-bold mb-2 uppercase tracking-widest text-center">Pending</span>
-                                <span className="block text-4xl font-black text-amber-700 text-center tracking-tight">41</span>
+                                <span className="block text-4xl font-black text-amber-700 text-center tracking-tight">{stats.pending}</span>
                             </div>
                             <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100 hover:bg-white hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                                 <span className="block text-indigo-600/70 text-xs font-bold mb-2 uppercase tracking-widest text-center">Collectors</span>
-                                <span className="block text-4xl font-black text-indigo-700 text-center tracking-tight">12</span>
+                                <span className="block text-4xl font-black text-indigo-700 text-center tracking-tight">{stats.collectorsCount}</span>
                             </div>
                         </div>
                     </div>
@@ -68,25 +108,31 @@ const AdminDashboard = () => {
                         </div>
                         
                         <div className="space-y-5">
-                            {problemAreas.map((area, index) => (
-                                <div key={area.id} className="flex items-center justify-between p-7 bg-slate-50/50 rounded-3xl border border-slate-100 hover:border-indigo-200 hover:bg-white transition-all group">
-                                    <div className="flex items-center space-x-6">
-                                        <span className="text-2xl font-black text-slate-300 group-hover:text-indigo-600 transition-colors w-6">
-                                            {index + 1}.
-                                        </span>
-                                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
-                                            <MapPin size={24} className="text-rose-500" />
+                            {problemAreas.length > 0 ? (
+                                problemAreas.map((area, index) => (
+                                    <div key={index} className="flex items-center justify-between p-7 bg-slate-50/50 rounded-3xl border border-slate-100 hover:border-indigo-200 hover:bg-white transition-all group">
+                                        <div className="flex items-center space-x-6">
+                                            <span className="text-2xl font-black text-slate-300 group-hover:text-indigo-600 transition-colors w-6">
+                                                {index + 1}.
+                                            </span>
+                                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
+                                                <MapPin size={24} className="text-rose-500" />
+                                            </div>
+                                            <div className="flex items-center space-x-3">
+                                                <span className="font-bold text-slate-800 tracking-tight text-xl">{area.location}</span>
+                                                <span className="text-slate-400 font-bold mx-2">→</span>
+                                                <span className="text-rose-600 font-black text-2xl">{area.count}</span>
+                                                <span className="text-slate-500 font-bold text-lg">reports</span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center space-x-3">
-                                            <span className="font-bold text-slate-800 tracking-tight text-xl">{area.location}</span>
-                                            <span className="text-slate-400 font-bold mx-2">→</span>
-                                            <span className="text-rose-600 font-black text-2xl">{area.count}</span>
-                                            <span className="text-slate-500 font-bold text-lg">reports</span>
-                                        </div>
+                                        <TrendingUp className="w-6 h-6 text-rose-500" />
                                     </div>
-                                    <TrendingUp className={`w-6 h-6 ${area.trend === 'up' ? 'text-rose-500 rotate-0' : area.trend === 'down' ? 'text-emerald-500 rotate-180' : 'text-slate-400 rotate-45'}`} />
+                                ))
+                            ) : (
+                                <div className="text-center py-10 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
+                                    <p className="text-slate-400 font-bold">No reports in the last 7 days.</p>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
                 </div>
@@ -100,24 +146,20 @@ const AdminDashboard = () => {
                                 <span>Zone Status</span>
                             </h3>
                             <div className="space-y-6 mt-8">
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-sm font-bold uppercase tracking-widest text-indigo-300">
-                                        <span>Zone A (Old City)</span>
-                                        <span>88% Efficiency</span>
+                                {zoneStats.map((zone, index) => (
+                                    <div key={index} className="space-y-2">
+                                        <div className="flex justify-between text-sm font-bold uppercase tracking-widest text-indigo-300">
+                                            <span>{zone.zone}</span>
+                                            <span>{Math.round(zone.efficiency)}% Efficiency</span>
+                                        </div>
+                                        <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                                            <div 
+                                                className={`h-full rounded-full shadow-lg ${zone.efficiency > 70 ? 'bg-emerald-400 shadow-emerald-400/50' : zone.efficiency > 40 ? 'bg-amber-400 shadow-amber-400/50' : 'bg-rose-400 shadow-rose-400/50'}`} 
+                                                style={{ width: `${zone.efficiency}%` }} 
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                                        <div className="h-full bg-emerald-400 w-[88%] rounded-full shadow-[0_0_10px_rgba(52,211,153,0.5)]" />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-sm font-bold uppercase tracking-widest text-indigo-300">
-                                        <span>Zone B (North)</span>
-                                        <span>45% Efficiency</span>
-                                    </div>
-                                    <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                                        <div className="h-full bg-rose-400 w-[45%] rounded-full shadow-[0_0_10px_rgba(251,113,133,0.5)]" />
-                                    </div>
-                                </div>
+                                ))}
                             </div>
                             <button className="mt-10 w-full py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl font-bold transition-all backdrop-blur-sm group-hover:scale-[1.02]">
                                 Generate Monthly Report
@@ -132,3 +174,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
