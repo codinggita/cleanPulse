@@ -39,21 +39,53 @@ router.post('/', auth, async (req, res) => {
 // @access  Private
 router.get('/', auth, async (req, res) => {
     try {
-        const { zone, status, citizenId } = req.query;
+        const { zone, status, citizenId, search, urgency, sortBy, page = 1, limit = 10 } = req.query;
         let query = {};
 
+        // Base Filters
         if (zone) query.zone = zone;
-        if (status) query.status = status;
+        if (status && status !== 'All') query.status = status;
+        if (urgency && urgency !== 'All') query.urgency = urgency;
         
-        // If citizen, they only see their own reports by default if not specified
+        // Search Logic (Regex)
+        if (search) {
+            query.$or = [
+                { location: { $regex: search, $options: 'i' } },
+                { landmark: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } }
+            ];
+        }
+        
+        // Citizen scope
         if (req.user.role === 'citizen') {
             query.citizenId = req.user.id;
         } else if (citizenId) {
             query.citizenId = citizenId;
         }
 
-        const reports = await Report.find(query).sort({ createdAt: -1 });
-        res.json(reports);
+        // Sorting
+        let sort = { createdAt: -1 };
+        if (sortBy === 'oldest') sort = { createdAt: 1 };
+        if (sortBy === 'urgency') sort = { urgency: -1 };
+
+        // Pagination calculations
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        // Fetch counts and data
+        const totalReports = await Report.countDocuments(query);
+        const reports = await Report.find(query)
+            .sort(sort)
+            .skip(skip)
+            .limit(limitNum);
+
+        res.json({
+            reports,
+            totalReports,
+            totalPages: Math.ceil(totalReports / limitNum),
+            currentPage: pageNum
+        });
     } catch (err) {
         console.error('Fetch reports error:', err.message);
         res.status(500).send('Server Error');
