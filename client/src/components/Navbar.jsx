@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Recycle, LogOut, User as UserIcon, FileText } from 'lucide-react';
+import { Recycle, LogOut, User as UserIcon, FileText, Award } from 'lucide-react';
 
 const Navbar = () => {
     const { user, logout } = useAuth();
@@ -30,10 +30,16 @@ const Navbar = () => {
                                     <span>Dashboard</span>
                                 </Link>
                                 {user.role === 'citizen' && (
-                                    <Link to="/citizen/my-reports" className="flex items-center space-x-2 text-slate-700 hover:text-emerald-600 font-medium transition-colors">
-                                        <FileText size={20} />
-                                        <span>My Reports</span>
-                                    </Link>
+                                    <>
+                                        <Link to="/citizen/my-reports" className="flex items-center space-x-2 text-slate-700 hover:text-emerald-600 font-medium transition-colors">
+                                            <FileText size={20} />
+                                            <span>My Reports</span>
+                                        </Link>
+                                        <Link to="/citizen/profile" className="flex items-center space-x-2 text-slate-700 hover:text-emerald-600 font-medium transition-colors">
+                                            <Award size={20} />
+                                            <span>Profile</span>
+                                        </Link>
+                                    </>
                                 )}
                                 <button 
                                     onClick={logout}

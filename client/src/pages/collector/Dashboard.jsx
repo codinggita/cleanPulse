@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Truck, CheckCircle, Clock, MapPin, Play, Check, ClipboardList, Loader2, AlertCircle } from 'lucide-react';
 
@@ -87,18 +88,18 @@ const CollectorDashboard = () => {
                 <div className="mb-12">
                     <h3 className="text-xl font-bold text-slate-800 mb-6 tracking-tight">Today's Pickups</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-12">
-                        <div className="flex items-center space-x-4">
-                            <div className="p-3 bg-slate-100 rounded-2xl flex items-center justify-center">
+                        <Link to="/collector/pickups?status=Pending" className="flex items-center space-x-4 p-4 hover:bg-slate-50 rounded-2xl transition-all group">
+                            <div className="p-3 bg-slate-100 rounded-2xl flex items-center justify-center group-hover:bg-slate-200 transition-colors">
                                 <ClipboardList className="text-slate-500 w-6 h-6" />
                             </div>
-                            <span className="text-lg font-bold text-slate-700">Assigned: <span className="text-2xl text-slate-900 ml-2">{stats.assigned}</span></span>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            <div className="p-3 bg-emerald-100 rounded-2xl flex items-center justify-center">
+                            <span className="text-lg font-bold text-slate-700">Pending in Zone: <span className="text-2xl text-slate-900 ml-2">{stats.pending}</span></span>
+                        </Link>
+                        <Link to="/collector/pickups?status=Resolved" className="flex items-center space-x-4 p-4 hover:bg-emerald-50 rounded-2xl transition-all group">
+                            <div className="p-3 bg-emerald-100 rounded-2xl flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
                                 <CheckCircle className="text-emerald-600 w-6 h-6" />
                             </div>
-                            <span className="text-lg font-bold text-slate-700">Completed: <span className="text-2xl text-emerald-600 ml-2">{stats.completed}</span></span>
-                        </div>
+                            <span className="text-lg font-bold text-slate-700">My Completed: <span className="text-2xl text-emerald-600 ml-2">{stats.completed}</span></span>
+                        </Link>
                         <div className="flex items-center space-x-4">
                             <div className="p-3 bg-amber-100 rounded-2xl flex items-center justify-center">
                                 <Clock className="text-amber-600 w-6 h-6" />
@@ -110,7 +111,15 @@ const CollectorDashboard = () => {
 
                 {/* Assigned Pickup List */}
                 <div>
-                    <h3 className="text-xl font-bold text-slate-800 mb-6 tracking-tight">Assigned Pickup List</h3>
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-bold text-slate-800 tracking-tight">Assigned Pickup List</h3>
+                        <Link 
+                            to="/collector/pickups"
+                            className="text-emerald-600 font-bold hover:underline flex items-center gap-1 group/all"
+                        >
+                            Manage All <Truck size={16} className="group-hover/all:translate-x-1 transition-transform" />
+                        </Link>
+                    </div>
                     <div className="space-y-4">
                         {pickups.length > 0 ? (
                             pickups.map((pickup) => (

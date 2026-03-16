@@ -8,8 +8,12 @@ import Login from './pages/Login';
 import CitizenDashboard from './pages/citizen/Dashboard';
 import SubmitReport from './pages/citizen/SubmitReport';
 import MyReports from './pages/citizen/MyReports';
+import CitizenProfile from './pages/citizen/Profile';
 import CollectorDashboard from './pages/collector/Dashboard';
+import CollectorPickups from './pages/collector/Pickups';
 import AdminDashboard from './pages/admin/Dashboard';
+import AdminReports from './pages/admin/Reports';
+import AdminUsers from './pages/admin/Users';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -52,6 +56,15 @@ function App() {
               />
 
               <Route 
+                path="/citizen/profile" 
+                element={
+                  <ProtectedRoute role="citizen">
+                    <CitizenProfile />
+                  </ProtectedRoute>
+                } 
+              />
+
+              <Route 
                 path="/citizen/edit-report/:id" 
                 element={
                   <ProtectedRoute role="citizen">
@@ -68,12 +81,39 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
+
+              <Route 
+                path="/collector/pickups" 
+                element={
+                  <ProtectedRoute role="collector">
+                    <CollectorPickups />
+                  </ProtectedRoute>
+                } 
+              />
               
               <Route 
                 path="/admin/dashboard" 
                 element={
                   <ProtectedRoute role="admin">
                     <AdminDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+
+              <Route 
+                path="/admin/reports" 
+                element={
+                  <ProtectedRoute role="admin">
+                    <AdminReports />
+                  </ProtectedRoute>
+                } 
+              />
+
+              <Route 
+                path="/admin/users" 
+                element={
+                  <ProtectedRoute role="admin">
+                    <AdminUsers />
                   </ProtectedRoute>
                 } 
               />

@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const auth = require('../middleware/auth');
 
 // @route   POST /api/auth/signup
 // @desc    Register a new user
@@ -49,8 +50,12 @@ router.post('/signup', async (req, res) => {
             }
         );
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('Signup Error:', err);
+        if (err.name === 'ValidationError') {
+            const messages = Object.values(err.errors).map(val => val.message);
+            return res.status(400).json({ message: 'Validation Error: ' + messages.join(', ') });
+        }
+        res.status(500).json({ message: 'Server Error: ' + err.message });
     }
 });
 
@@ -94,8 +99,8 @@ router.post('/login', async (req, res) => {
             }
         );
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('Login Error:', err);
+        res.status(500).json({ message: 'Server Error: ' + err.message });
     }
 });
 
@@ -106,7 +111,38 @@ router.get('/users', async (req, res) => {
         const users = await User.find().select('-password');
         res.json(users);
     } catch (err) {
-        console.error(err.message);
+        console.error('Fetch Users Error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT /api/auth/profile
+// @desc    Update user profile
+router.put('/profile', auth, async (req, res) => {
+    try {
+        const { name, phone, zone } = req.body;
+        const userId = req.user.id;
+
+        // Build profile object
+        const profileFields = {};
+        if (name) profileFields.name = name;
+        if (phone) profileFields.phone = phone;
+        if (zone) profileFields.zone = zone;
+
+        let user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        user = await User.findByIdAndUpdate(
+            userId,
+            { $set: profileFields },
+            { new: true }
+        ).select('-password');
+
+        res.json(user);
+    } catch (err) {
+        console.error('Update Profile Error:', err.message);
         res.status(500).send('Server Error');
     }
 });

@@ -195,6 +195,13 @@ router.put('/:id/status', auth, async (req, res) => {
 
         report.status = status;
         await report.save();
+
+        // If report is resolved, check for badges for the citizen
+        if (status === 'Resolved') {
+            const { checkAndAwardBadges } = require('../utils/badgeHandler');
+            await checkAndAwardBadges(report.citizenId);
+        }
+
         res.json(report);
     } catch (err) {
         console.error('Update status error:', err.message);
